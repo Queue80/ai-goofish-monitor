@@ -88,6 +88,8 @@ class ItemAnalysisDispatcher:
         merged = copy.deepcopy(seller_info or {})
         merged["卖家芝麻信用"] = job.zhima_credit_text
         merged["卖家注册时长"] = job.registration_duration_text
+        if job.seller_id:
+            merged["卖家用户ID"] = job.seller_id
         return merged
 
     async def _build_analysis_result(self, job: ItemAnalysisJob, record: dict) -> dict:

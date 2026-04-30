@@ -1,0 +1,59 @@
+{
+  "name": "xianyu-monitor",
+  "version": "1.0.0",
+  "description": "闲鱼智能监控系统 - 桌面版",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0"
+  },
+  "dependencies": {
+    "express": "^4.18.0"
+  },
+  "build": {
+    "appId": "com.xianyu.monitor",
+    "productName": "闲鱼智能监控",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "setup.html",
+      "icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist",
+        "to": "frontend"
+      },
+      {
+        "from": "./pyinstaller-dist/xianyu-backend",
+        "to": "backend"
+      },
+      {
+        "from": "./playwright-browsers",
+        "to": "playwright-browsers"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerHeaderIcon": "icon.png",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "闲鱼监控"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+name: Build Windows Desktop App
+
+on:
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Frontend
+        run: |
+          cd web-ui
+          npm ci
+          npm run build
+
+      - name: Install Python Dependencies
+        run: |
+          pip install -r requirements-runtime.txt
+          pip install pyinstaller
+
+      - name: Build Backend with PyInstaller
+        run: |
+          pyinstaller desktop-app/build-backend.spec --distpath desktop-app/pyinstaller-dist
+        env:
+          PYTHONPATH: .
+
+      - name: Install Playwright Chromium
+        run: |
+          python -m playwright install chromium
+          # 复制浏览器到打包目录
+          $browserPath = python -c "import playwright; import os; print(os.path.join(os.path.dirname(playwright.__file__), 'driver', 'package', '.local-browsers'))"
+          xcopy /E /I /Y "$browserPath" "desktop-app\playwright-browsers"
+        shell: pwsh
+
+      - name: Install Desktop App Dependencies
+        run: |
+          cd desktop-app
+          npm ci
+
+      - name: Build Windows Installer
+        run: |
+          cd desktop-app
+          npm run build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: xianyu-monitor-windows-installer
+          path: desktop-app/release/*.exe
+          retention-days: 30

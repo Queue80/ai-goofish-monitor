@@ -26,6 +26,7 @@ export interface SellerInfo {
   "买家信用等级"?: string;
   "卖家芝麻信用"?: string;
   "卖家注册时长"?: string;
+  "卖家用户ID"?: string;
   "作为卖家的好评数"?: string;
   "作为卖家的好评率"?: string;
   "作为买家的好评数"?: string;

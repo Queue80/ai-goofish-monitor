@@ -43,6 +43,30 @@ const matchScore = ai?.value_score ?? 0
 const isHidden = computed(() => props.item._status === 'hidden')
 
 const expanded = ref(false)
+
+// 从商品链接中提取商品ID，构建聊天和购买链接
+const itemId = computed(() => {
+  const link = info.商品链接 || ''
+  const match = link.match(/id=(\d+)/)
+  return match ? match[1] : ''
+})
+const sellerId = computed(() => {
+  return seller?.卖家用户ID || ''
+})
+const chatLink = computed(() => {
+  if (!itemId.value) return info.商品链接 || '#'
+  // 直接跳转商品详情页，用户点"我想要"即可发起聊天
+  // 如果有卖家ID则用完整IM链接
+  if (sellerId.value) {
+    return `https://www.goofish.com/im?spm=a21ybx.item.want.1&itemId=${itemId.value}&peerUserId=${sellerId.value}`
+  }
+  // 没有卖家ID时跳转商品页，用户手动点聊天按钮
+  return `https://www.goofish.com/item?id=${itemId.value}`
+})
+const buyLink = computed(() => {
+  if (!itemId.value) return info.商品链接 || '#'
+  return `https://www.goofish.com/create-order?spm=a21ybx.item.buy.1&itemId=${itemId.value}`
+})
 </script>
 
 <template>
@@ -161,20 +185,28 @@ const expanded = ref(false)
       </div>
     </CardContent>
 
-    <CardFooter class="px-4 py-3 bg-slate-50/30 border-t border-slate-100/60 flex items-center justify-between text-[10px]">
-      <div class="flex items-center gap-3 text-slate-400">
+    <CardFooter class="px-4 py-3 bg-slate-50/30 border-t border-slate-100/60 flex flex-col gap-2 text-xs">
+      <div class="flex items-center gap-3 text-slate-400 w-full">
         <div class="flex items-center gap-1">
           <User class="w-3 h-3" />
-          <span class="truncate max-w-[60px]">{{ seller.卖家昵称 || info.卖家昵称 || t('results.card.anonymous') }}</span>
+          <span class="truncate max-w-[80px]">{{ seller.卖家昵称 || info.卖家昵称 || t('results.card.anonymous') }}</span>
         </div>
         <div class="flex items-center gap-1">
           <Clock class="w-3 h-3" />
           <span>{{ crawlTime }}</span>
         </div>
       </div>
-      <a :href="info.商品链接" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 text-primary font-bold hover:gap-1.5 transition-all">
-        {{ t('results.card.detail') }} <ExternalLink class="w-3 h-3" />
-      </a>
+      <div class="flex items-center gap-2 w-full">
+        <a :href="info.商品链接" target="_blank" rel="noopener noreferrer" class="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-primary/10 text-primary font-semibold hover:bg-primary/20 transition-colors text-xs">
+          <ExternalLink class="w-3.5 h-3.5" /> {{ t('results.card.detail') }}
+        </a>
+        <a :href="chatLink" target="_blank" rel="noopener noreferrer" class="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition-colors text-xs">
+          💬 聊天
+        </a>
+        <a :href="buyLink" target="_blank" rel="noopener noreferrer" class="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 font-semibold hover:bg-emerald-100 transition-colors text-xs">
+          🛒 购买
+        </a>
+      </div>
     </CardFooter>
   </Card>
 </template>

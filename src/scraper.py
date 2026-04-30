@@ -642,11 +642,11 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                     timeout=30000,
                 )
                 log_time("[反爬] 在首页停留，模拟浏览...")
-                await random_sleep(1, 2)
+                await random_sleep(0.5, 1)
 
                 # 模拟随机滚动（移动设备的触摸滚动）
                 await page.evaluate("window.scrollBy(0, Math.random() * 500 + 200)")
-                await random_sleep(1, 2)
+                await random_sleep(0.5, 1)
 
                 log_time("步骤 1 - 导航到搜索结果页...")
                 # 使用 'q' 参数构建正确的搜索URL，并进行URL编码
@@ -681,7 +681,7 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
 
                 # 模拟真实用户行为：页面加载后的初始停留和浏览
                 log_time("[反爬] 模拟用户查看页面...")
-                await random_sleep(1, 3)
+                await random_sleep(0.5, 1.5)
 
                 # --- 新增：检查是否存在验证弹窗 ---
                 baxia_dialog = page.locator("div.baxia-dialog-mask")
@@ -743,13 +743,13 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                 if new_publish_option:
                     try:
                         await page.click("text=新发布")
-                        await random_sleep(1, 2)  # 原来是 (1.5, 2.5)
+                        await random_sleep(0.5, 1)  # 原来是 (1.5, 2.5)
                         async with page.expect_response(
                             is_search_results_response, timeout=20000
                         ) as response_info:
                             await page.click(f"text={new_publish_option}")
                             # --- 修改: 增加排序后的等待时间 ---
-                            await random_sleep(2, 4)  # 原来是 (3, 5)
+                            await random_sleep(1, 2)  # 原来是 (3, 5)
                         final_response = await response_info.value
                     except PlaywrightTimeoutError:
                         log_time(
@@ -764,7 +764,7 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                     ) as response_info:
                         await page.click("text=个人闲置")
                         # --- 修改: 将固定等待改为随机等待，并加长 ---
-                        await random_sleep(2, 4)  # 原来是 asyncio.sleep(5)
+                        await random_sleep(1, 2)  # 原来是 asyncio.sleep(5)
                     final_response = await response_info.value
 
                 if free_shipping:
@@ -773,7 +773,7 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                             is_search_results_response, timeout=20000
                         ) as response_info:
                             await page.click("text=包邮")
-                            await random_sleep(2, 4)
+                            await random_sleep(1, 2)
                         final_response = await response_info.value
                     except PlaywrightTimeoutError:
                         log_time("包邮筛选请求超时，继续执行。")
@@ -972,7 +972,7 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                             f"[页内进度 {i}/{total_items_on_page}] 发现新商品，获取详情: {item_data['商品标题'][:30]}..."
                         )
                         # --- 修改: 访问详情页前的等待时间，模拟用户在列表页上看了一会儿 ---
-                        await random_sleep(2, 4)  # 原来是 (2, 4)
+                        await random_sleep(1, 2)  # 原来是 (2, 4)
 
                         detail_page = await context.new_page()
                         try:
@@ -1110,7 +1110,7 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                                 log_time(
                                     "[反爬] 执行一次主要的随机延迟以模拟用户浏览间隔..."
                                 )
-                                await random_sleep(5, 10)
+                                await random_sleep(1, 3)
                             else:
                                 print(
                                     f"   错误: 获取商品详情API响应失败，状态码: {detail_response.status}"
@@ -1134,14 +1134,14 @@ async def scrape_xianyu(task_config: dict, debug_limit: int = 0):
                         finally:
                             await detail_page.close()
                             # --- 修改: 增加关闭页面后的短暂整理时间 ---
-                            await random_sleep(2, 4)  # 原来是 (1, 2.5)
+                            await random_sleep(0.5, 1.5)  # 原来是 (1, 2.5)
 
                     # --- 新增: 在处理完一页所有商品后，翻页前，增加一个更长的“休息”时间 ---
                     if not stop_scraping and page_num < max_pages:
                         print(
                             f"--- 第 {page_num} 页处理完毕，准备翻页。执行一次页面间的长时休息... ---"
                         )
-                        await random_sleep(10, 15)
+                        await random_sleep(1, 3)
 
             except PlaywrightTimeoutError as e:
                 if _is_login_url(page.url):
