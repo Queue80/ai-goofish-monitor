@@ -45,7 +45,7 @@ jobs:
       - name: Install Desktop App Dependencies
         run: |
           cd desktop-app
-          npm ci
+          npm install
 
       - name: Build Windows Installer
         run: |
