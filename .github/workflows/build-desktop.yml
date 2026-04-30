@@ -39,10 +39,8 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           python -m playwright install chromium
-          # 复制浏览器到打包目录
-          $browserPath = python -c "import playwright; import os; print(os.path.join(os.path.dirname(playwright.__file__), 'driver', 'package', '.local-browsers'))"
-          xcopy /E /I /Y "$browserPath" "desktop-app\playwright-browsers"
-        shell: pwsh
+          xcopy /E /I /Y "C:\Users\runneradmin\AppData\Local\ms-playwright" "desktop-app\playwright-browsers"
+        shell: cmd
 
       - name: Install Desktop App Dependencies
         run: |
