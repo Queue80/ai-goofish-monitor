@@ -28,19 +28,21 @@ function isConfigured() {
 
 function getPythonPath() {
   // 打包模式：使用内嵌的 PyInstaller 可执行文件
-  const bundledBackend = path.join(process.resourcesPath, 'backend', 'xianyu-backend.exe')
-  if (fs.existsSync(bundledBackend)) {
-    return { mode: 'bundled', path: bundledBackend }
+  const bundledBackendDir = path.join(process.resourcesPath, 'backend', 'xianyu-backend')
+  const bundledBackendExe = path.join(process.resourcesPath, 'backend', 'xianyu-backend.exe')
+  
+  if (fs.existsSync(bundledBackendExe)) {
+    // 单文件模式
+    return { mode: 'bundled', path: bundledBackendExe }
+  } else if (fs.existsSync(bundledBackendDir)) {
+    // 目录模式 - 查找 .exe 文件
+    const files = fs.readdirSync(bundledBackendDir)
+    const exeFile = files.find(f => f.endsWith('.exe'))
+    if (exeFile) {
+      return { mode: 'bundled', path: path.join(bundledBackendDir, exeFile) }
+    }
   }
-
-  // 开发模式：使用系统 Python
-  const candidates = ['python', 'python3', 'py']
-  for (const cmd of candidates) {
-    try {
-      const result = execSync(`${cmd} --version`, { encoding: 'utf-8', timeout: 5000 })
-      if (result.includes('Python 3')) return { mode: 'python', path: cmd }
-    } catch (e) { /* ignore */ }
-  }
+  
   return null
 }
 

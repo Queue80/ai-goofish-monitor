@@ -40,7 +40,8 @@
       },
       {
         "from": "./pyinstaller-dist/xianyu-backend",
-        "to": "backend"
+        "to": "backend",
+        "filter": ["**/*"]
       },
       {
         "from": "./playwright-browsers",
