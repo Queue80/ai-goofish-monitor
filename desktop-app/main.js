@@ -9,6 +9,7 @@ const APP_PORT = 8000
 
 // 日志文件路径
 const userDataPath = app.getPath('userData')
+const envFilePath = path.join(userDataPath, '.env')
 const logsDir = path.join(userDataPath, 'logs')
 const logFile = path.join(logsDir, 'app.log')
 
