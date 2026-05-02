@@ -120,8 +120,12 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # 挂载 Vue 3 前端构建产物
 # 注意：需要在所有 API 路由之后挂载，以避免覆盖 API 路由
 import os
-if os.path.exists("dist"):
-    app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
+from src.infrastructure.config.settings import settings as app_settings
+
+# 支持从环境变量读取前端路径（用于桌面应用打包模式）
+frontend_dir = os.environ.get("STATIC_FILES_DIR", "dist")
+if os.path.exists(frontend_dir):
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dir, "assets")), name="assets")
 
 
 # 健康检查端点
@@ -155,8 +159,9 @@ from fastapi.responses import JSONResponse
 @app.get("/")
 async def read_root(request: Request):
     """提供 Vue 3 SPA 的主页面"""
-    if os.path.exists("dist/index.html"):
-        return FileResponse("dist/index.html")
+    frontend_dir = os.environ.get("STATIC_FILES_DIR", "dist")
+    if os.path.exists(os.path.join(frontend_dir, "index.html")):
+        return FileResponse(os.path.join(frontend_dir, "index.html"))
     else:
         return JSONResponse(
             status_code=500,
@@ -176,8 +181,9 @@ async def serve_spa(request: Request, full_path: str):
         return JSONResponse(status_code=404, content={"error": "资源未找到"})
 
     # 其他所有路径都返回 index.html，让前端路由处理
-    if os.path.exists("dist/index.html"):
-        return FileResponse("dist/index.html")
+    frontend_dir = os.environ.get("STATIC_FILES_DIR", "dist")
+    if os.path.exists(os.path.join(frontend_dir, "index.html")):
+        return FileResponse(os.path.join(frontend_dir, "index.html"))
     else:
         return JSONResponse(
             status_code=500,
