@@ -87,6 +87,10 @@ class ProcessService:
         return log_file_path, log_file_handle
 
     def _build_spawn_command(self, task_name: str) -> list[str]:
+        # 打印实际要执行的命令用于调试
+        print(f"[Task Debug] sys.executable: {sys.executable}")
+        print(f"[Task Debug] sys.version: {sys.version}")
+        
         command = [
             sys.executable,
             "-u",
@@ -94,6 +98,8 @@ class ProcessService:
             "--task-name",
             task_name,
         ]
+        print(f"[Task Debug] Spawn command: {' '.join(command)}")
+        
         debug_limit = str(os.getenv(SPIDER_DEBUG_LIMIT_ENV, "")).strip()
         if debug_limit.isdigit() and int(debug_limit) > 0:
             command.extend(["--debug-limit", debug_limit])
