@@ -143,14 +143,20 @@ function startBackend() {
     // 使用打包好的可执行文件
     log(`Using bundled backend: ${runtime.path}`)
     
-    // 确定工作目录：exe 所在目录
-    const backendCwd = path.dirname(runtime.path)
+    // 确定工作目录：exe 的父目录 (resources 目录)
+    // exe 在 resources/backend/xianyu-backend.exe，所以父目录是 resources
+    const backendCwd = path.join(process.resourcesPath)
     log(`Backend working directory: ${backendCwd}`)
     
-    // 检查 dist 是否在工作目录下
-    const distInCwd = path.join(backendCwd, 'dist')
-    if (fs.existsSync(distInCwd)) {
-      log(`Found dist in backend cwd: ${distInCwd}`)
+    // 检查各目录是否存在
+    const distInResources = path.join(backendCwd, 'dist')
+    if (fs.existsSync(distInResources)) {
+      log(`Found dist in resources: ${distInResources}`)
+    }
+    
+    const staticInResources = path.join(backendCwd, 'static')
+    if (fs.existsSync(staticInResources)) {
+      log(`Found static in resources: ${staticInResources}`)
     }
     
     // 设置 Playwright 浏览器路径
@@ -163,12 +169,8 @@ function startBackend() {
       log('WARNING: Playwright browsers not found')
     }
     
-    // 设置前端静态文件路径 - 优先使用 backend 所在目录的 dist
-    let frontendPath = path.join(backendCwd, 'dist')
-    if (!fs.existsSync(frontendPath)) {
-      // 备选：使用 resourcesPath 下的 dist
-      frontendPath = path.join(process.resourcesPath, 'dist')
-    }
+    // 设置前端静态文件路径 - 使用 resources 目录
+    const frontendPath = path.join(backendCwd, 'dist')
     
     log(`Frontend path: ${frontendPath}`)
     if (fs.existsSync(frontendPath)) {
@@ -191,7 +193,7 @@ function startBackend() {
     backendProcess = spawn(runtime.path, [], {
       env,
       stdio: ['pipe', 'pipe', 'pipe'],  // 改为 pipe 以便捕获输出
-      cwd: backendCwd  // 使用 exe 所在目录作为工作目录
+      cwd: backendCwd  // 使用 resources 目录作为工作目录
     })
     
     // 添加后端进程的输出监听
