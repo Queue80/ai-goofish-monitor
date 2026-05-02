@@ -17,7 +17,6 @@ a = Analysis(
         (os.path.join(ROOT, 'prompts'), 'prompts'),
         (os.path.join(ROOT, 'static'), 'static'),
         (os.path.join(ROOT, 'config.json.example'), '.'),
-        (os.path.join(ROOT, 'dist'), 'dist'),
     ],
     hiddenimports=[
         'uvicorn',
@@ -87,3 +86,31 @@ coll = COLLECT(
     upx_exclude=[],
     name='xianyu-backend',
 )
+
+# 复制 dist 目录到输出目录
+import shutil
+dist_src = os.path.join(ROOT, 'dist')
+dist_dst = os.path.join(ROOT, 'desktop-app', 'pyinstaller-dist', 'xianyu-backend', 'dist')
+if os.path.exists(dist_src):
+    if os.path.exists(dist_dst):
+        shutil.rmtree(dist_dst)
+    shutil.copytree(dist_src, dist_dst)
+    print(f'Copied dist to {dist_dst}')
+
+# 复制 static 目录到输出目录
+static_src = os.path.join(ROOT, 'static')
+static_dst = os.path.join(ROOT, 'desktop-app', 'pyinstaller-dist', 'xianyu-backend', 'static')
+if os.path.exists(static_src):
+    if os.path.exists(static_dst):
+        shutil.rmtree(static_dst)
+    shutil.copytree(static_src, static_dst)
+    print(f'Copied static to {static_dst}')
+
+# 复制 prompts 目录到输出目录
+prompts_src = os.path.join(ROOT, 'prompts')
+prompts_dst = os.path.join(ROOT, 'desktop-app', 'pyinstaller-dist', 'xianyu-backend', 'prompts')
+if os.path.exists(prompts_src):
+    if os.path.exists(prompts_dst):
+        shutil.rmtree(prompts_dst)
+    shutil.copytree(prompts_src, prompts_dst)
+    print(f'Copied prompts to {prompts_dst}')

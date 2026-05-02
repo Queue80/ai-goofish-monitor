@@ -43,22 +43,28 @@ function getPythonPath() {
   log('Checking for bundled backend...')
   
   // 打包模式：使用内嵌的 PyInstaller 可执行文件
-  const bundledBackendDir = path.join(process.resourcesPath, 'backend', 'xianyu-backend')
+  // 情况1: 单文件模式 (PyInstaller --onefile)
   const bundledBackendExe = path.join(process.resourcesPath, 'backend', 'xianyu-backend.exe')
+  
+  // 情况2: 目录模式 (PyInstaller COLLECT) - exe 在子目录中
+  const bundledBackendDir = path.join(process.resourcesPath, 'backend', 'xianyu-backend')
   
   if (fs.existsSync(bundledBackendExe)) {
     log(`Found bundled backend (single file): ${bundledBackendExe}`)
-    // 单文件模式
     return { mode: 'bundled', path: bundledBackendExe }
   } else if (fs.existsSync(bundledBackendDir)) {
     log(`Found bundled backend directory: ${bundledBackendDir}`)
     // 目录模式 - 查找 .exe 文件
-    const files = fs.readdirSync(bundledBackendDir)
-    const exeFile = files.find(f => f.endsWith('.exe'))
-    if (exeFile) {
-      const fullPath = path.join(bundledBackendDir, exeFile)
-      log(`Found backend executable: ${fullPath}`)
-      return { mode: 'bundled', path: fullPath }
+    try {
+      const files = fs.readdirSync(bundledBackendDir)
+      const exeFile = files.find(f => f.endsWith('.exe'))
+      if (exeFile) {
+        const fullPath = path.join(bundledBackendDir, exeFile)
+        log(`Found backend executable: ${fullPath}`)
+        return { mode: 'bundled', path: fullPath }
+      }
+    } catch (e) {
+      log(`Error reading backend dir: ${e.message}`)
     }
     log('No .exe file found in backend directory')
   } else {
@@ -79,6 +85,30 @@ function startBackend() {
 
   log(`Backend runtime mode: ${runtime.mode}`)
   log(`Backend path: ${runtime.path}`)
+  log(`Resources path: ${process.resourcesPath}`)
+
+  // 列出 resources 目录结构帮助调试
+  try {
+    const resourcesContent = fs.readdirSync(process.resourcesPath)
+    log(`Resources directory contents: ${resourcesContent.join(', ')}`)
+    
+    // 检查是否有 backend 目录
+    const backendDir = path.join(process.resourcesPath, 'backend')
+    if (fs.existsSync(backendDir)) {
+      const backendContent = fs.readdirSync(backendDir)
+      log(`Backend directory contents: ${backendContent.join(', ')}`)
+    }
+    
+    // 检查 dist 目录
+    const distPath = path.join(process.resourcesPath, 'dist')
+    if (fs.existsSync(distPath)) {
+      log(`Dist directory exists at: ${distPath}`)
+    } else {
+      log(`WARNING: Dist directory not found at: ${distPath}`)
+    }
+  } catch (e) {
+    log(`ERROR listing resources: ${e.message}`)
+  }
 
   // 创建数据目录
   const dataDir = path.join(userDataPath, 'data')
@@ -113,6 +143,16 @@ function startBackend() {
     // 使用打包好的可执行文件
     log(`Using bundled backend: ${runtime.path}`)
     
+    // 确定工作目录：exe 所在目录
+    const backendCwd = path.dirname(runtime.path)
+    log(`Backend working directory: ${backendCwd}`)
+    
+    // 检查 dist 是否在工作目录下
+    const distInCwd = path.join(backendCwd, 'dist')
+    if (fs.existsSync(distInCwd)) {
+      log(`Found dist in backend cwd: ${distInCwd}`)
+    }
+    
     // 设置 Playwright 浏览器路径
     const browsersPath = path.join(process.resourcesPath, 'playwright-browsers')
     log(`Playwright browsers path: ${browsersPath}`)
@@ -123,17 +163,21 @@ function startBackend() {
       log('WARNING: Playwright browsers not found')
     }
     
-    // 设置前端静态文件路径
-    const frontendPath = path.join(process.resourcesPath, 'dist')
+    // 设置前端静态文件路径 - 优先使用 backend 所在目录的 dist
+    let frontendPath = path.join(backendCwd, 'dist')
+    if (!fs.existsSync(frontendPath)) {
+      // 备选：使用 resourcesPath 下的 dist
+      frontendPath = path.join(process.resourcesPath, 'dist')
+    }
+    
     log(`Frontend path: ${frontendPath}`)
     if (fs.existsSync(frontendPath)) {
       env.STATIC_FILES_DIR = frontendPath
       log(`Frontend path set: ${frontendPath}`)
     } else {
       log(`ERROR: Frontend path not found: ${frontendPath}`)
-      dialog.showErrorBox('启动失败', `前端文件不存在: ${frontendPath}`)
-      app.quit()
-      return
+      // 不再直接退出，尝试让后端自己处理
+      log('Will try default dist path in backend...')
     }
     
     // 设置数据目录
@@ -142,13 +186,12 @@ function startBackend() {
     env.IMAGES_DIR = imagesDir
 
     log('Starting backend process...')
-    log(`Backend cwd: ${process.resourcesPath}`)
-    log(`Backend env: ${JSON.stringify(env, null, 2)}`)
+    log(`Backend cwd: ${backendCwd}`)
     
     backendProcess = spawn(runtime.path, [], {
       env,
       stdio: ['pipe', 'pipe', 'pipe'],  // 改为 pipe 以便捕获输出
-      cwd: process.resourcesPath
+      cwd: backendCwd  // 使用 exe 所在目录作为工作目录
     })
     
     // 添加后端进程的输出监听
@@ -158,6 +201,10 @@ function startBackend() {
     
     backendProcess.stderr.on('data', (data) => {
       log(`[Backend Error] ${data}`)
+    })
+    
+    backendProcess.on('error', (err) => {
+      log(`[Backend Process Error] ${err.message}`)
     })
     
     backendProcess.on('close', (code) => {
@@ -222,9 +269,15 @@ function createMainWindow() {
   log('Main window created, waiting for backend...')
 
   // 等待后端启动后加载页面
-  const checkBackend = () => {
+  const checkBackend = (retryCount = 0) => {
+    if (retryCount > 30) {
+      log('ERROR: Backend check timeout after 30 retries')
+      dialog.showErrorBox('启动超时', '后端启动失败，请检查日志')
+      return
+    }
+    
     const http = require('http')
-    log(`Checking backend on port ${APP_PORT}...`)
+    log(`Checking backend on port ${APP_PORT}... (retry ${retryCount})`)
     
     const req = http.get(`http://127.0.0.1:${APP_PORT}`, (res) => {
       log(`Backend responded with status: ${res.statusCode}`)
@@ -240,22 +293,27 @@ function createMainWindow() {
           mainWindow.loadURL(`http://127.0.0.1:${APP_PORT}`)
         } else {
           log(`Backend returned non-HTML response, waiting...`)
-          setTimeout(checkBackend, 1000)
+          setTimeout(() => checkBackend(retryCount + 1), 1000)
         }
       })
     }).on('error', (e) => {
       log(`Backend not ready: ${e.message}`)
-      setTimeout(checkBackend, 1000)
+      setTimeout(() => checkBackend(retryCount + 1), 1000)
     })
     
     req.on('error', (e) => {
       log(`Backend request error: ${e.message}`)
-      setTimeout(checkBackend, 1000)
+      setTimeout(() => checkBackend(retryCount + 1), 1000)
     })
   }
 
+  log('Calling startBackend()...')
   startBackend()
-  setTimeout(checkBackend, 3000)  // 增加等待时间
+  log('startBackend() called, waiting 5 seconds...')
+  setTimeout(() => {
+    log('Starting backend check...')
+    checkBackend()
+  }, 5000)  // 增加等待时间
 }
 
 // IPC: 保存配置
