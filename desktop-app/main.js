@@ -7,18 +7,30 @@ let mainWindow
 let backendProcess = null
 const APP_PORT = 8000
 
-// 应用数据目录
+// 日志文件路径
 const userDataPath = app.getPath('userData')
-const envFilePath = path.join(userDataPath, '.env')
-const dataDir = path.join(userDataPath, 'data')
-const stateDir = path.join(userDataPath, 'state')
 const logsDir = path.join(userDataPath, 'logs')
-const imagesDir = path.join(userDataPath, 'images')
+const logFile = path.join(logsDir, 'app.log')
 
 function ensureDirectories() {
-  ;[dataDir, stateDir, logsDir, imagesDir].forEach(dir => {
+  ;[logsDir].forEach(dir => {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   })
+}
+
+function log(message) {
+  const timestamp = new Date().toISOString()
+  const logMessage = `[${timestamp}] ${message}\n`
+  
+  // 写入日志文件
+  try {
+    fs.appendFileSync(logFile, logMessage)
+  } catch (e) {
+    // 忽略日志写入错误
+  }
+  
+  // 同时输出到控制台
+  console.log(logMessage.trim())
 }
 
 function isConfigured() {
@@ -27,20 +39,29 @@ function isConfigured() {
 }
 
 function getPythonPath() {
+  log('Checking for bundled backend...')
+  
   // 打包模式：使用内嵌的 PyInstaller 可执行文件
   const bundledBackendDir = path.join(process.resourcesPath, 'backend', 'xianyu-backend')
   const bundledBackendExe = path.join(process.resourcesPath, 'backend', 'xianyu-backend.exe')
   
   if (fs.existsSync(bundledBackendExe)) {
+    log(`Found bundled backend (single file): ${bundledBackendExe}`)
     // 单文件模式
     return { mode: 'bundled', path: bundledBackendExe }
   } else if (fs.existsSync(bundledBackendDir)) {
+    log(`Found bundled backend directory: ${bundledBackendDir}`)
     // 目录模式 - 查找 .exe 文件
     const files = fs.readdirSync(bundledBackendDir)
     const exeFile = files.find(f => f.endsWith('.exe'))
     if (exeFile) {
-      return { mode: 'bundled', path: path.join(bundledBackendDir, exeFile) }
+      const fullPath = path.join(bundledBackendDir, exeFile)
+      log(`Found backend executable: ${fullPath}`)
+      return { mode: 'bundled', path: fullPath }
     }
+    log('No .exe file found in backend directory')
+  } else {
+    log('No bundled backend found')
   }
   
   return null
@@ -49,13 +70,14 @@ function getPythonPath() {
 function startBackend() {
   const runtime = getPythonPath()
   if (!runtime) {
+    log('ERROR: No backend found!')
     dialog.showErrorBox('启动失败', '未找到后端程序，请重新安装。')
     app.quit()
     return
   }
 
-  console.log(`[Main] Backend runtime mode: ${runtime.mode}`)
-  console.log(`[Main] Backend path: ${runtime.path}`)
+  log(`Backend runtime mode: ${runtime.mode}`)
+  log(`Backend path: ${runtime.path}`)
 
   const env = {
     ...process.env,
@@ -76,23 +98,26 @@ function startBackend() {
 
   if (runtime.mode === 'bundled') {
     // 使用打包好的可执行文件
-    console.log(`[Main] Using bundled backend: ${runtime.path}`)
+    log(`Using bundled backend: ${runtime.path}`)
     
     // 设置 Playwright 浏览器路径
     const browsersPath = path.join(process.resourcesPath, 'playwright-browsers')
-    console.log(`[Main] Playwright browsers path: ${browsersPath}`)
+    log(`Playwright browsers path: ${browsersPath}`)
     if (fs.existsSync(browsersPath)) {
       env.PLAYWRIGHT_BROWSERS_PATH = browsersPath
+      log('PLAYWRIGHT_BROWSERS_PATH set')
+    } else {
+      log('WARNING: Playwright browsers not found')
     }
     
     // 设置前端静态文件路径
     const frontendPath = path.join(process.resourcesPath, 'dist')
-    console.log(`[Main] Frontend path: ${frontendPath}`)
+    log(`Frontend path: ${frontendPath}`)
     if (fs.existsSync(frontendPath)) {
       env.STATIC_FILES_DIR = frontendPath
-      console.log(`[Backend] Using frontend path: ${frontendPath}`)
+      log(`Frontend path set: ${frontendPath}`)
     } else {
-      console.error(`[Backend] Frontend path not found: ${frontendPath}`)
+      log(`ERROR: Frontend path not found: ${frontendPath}`)
       dialog.showErrorBox('启动失败', `前端文件不存在: ${frontendPath}`)
       app.quit()
       return
@@ -103,6 +128,7 @@ function startBackend() {
     env.LOGS_DIR = logsDir
     env.IMAGES_DIR = imagesDir
 
+    log('Starting backend process...')
     backendProcess = spawn(runtime.path, [], {
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -120,19 +146,19 @@ function startBackend() {
   }
 
   backendProcess.stdout.on('data', (data) => {
-    console.log(`[Backend] ${data}`)
+    log(`[Backend] ${data}`)
   })
 
   backendProcess.stderr.on('data', (data) => {
-    console.error(`[Backend Error] ${data}`)
+    log(`[Backend Error] ${data}`)
   })
 
   backendProcess.on('close', (code) => {
-    console.log(`Backend exited with code ${code}`)
+    log(`Backend exited with code ${code}`)
     backendProcess = null
   })
   
-  console.log(`[Main] Backend process started, waiting for port ${APP_PORT}...`)
+  log(`Backend process started, waiting for port ${APP_PORT}...`)
 }
 
 function stopBackend() {
@@ -174,12 +200,12 @@ function createMainWindow() {
   // 等待后端启动后加载页面
   const checkBackend = () => {
     const http = require('http')
-    console.log(`[Main] Checking backend on port ${APP_PORT}...`)
+    log(`Checking backend on port ${APP_PORT}...`)
     http.get(`http://127.0.0.1:${APP_PORT}`, (res) => {
-      console.log(`[Main] Backend is ready, loading URL`)
+      log(`Backend is ready, loading URL`)
       mainWindow.loadURL(`http://127.0.0.1:${APP_PORT}`)
     }).on('error', (e) => {
-      console.error(`[Main] Backend not ready: ${e.message}`)
+      log(`Backend not ready: ${e.message}`)
       setTimeout(checkBackend, 1000)
     })
   }
@@ -213,19 +239,28 @@ ipcMain.handle('start-app', async () => {
 })
 
 app.whenReady().then(() => {
+  log('Application starting...')
   ensureDirectories()
+  log(`User data path: ${userDataPath}`)
+  log(`Logs directory: ${logsDir}`)
+  log(`Config file exists: ${isConfigured()}`)
+  
   if (isConfigured()) {
+    log('Loading main window...')
     createMainWindow()
   } else {
+    log('Loading setup window...')
     createSetupWindow()
   }
 })
 
 app.on('window-all-closed', () => {
+  log('All windows closed')
   stopBackend()
   app.quit()
 })
 
 app.on('before-quit', () => {
+  log('Application quitting...')
   stopBackend()
 })
