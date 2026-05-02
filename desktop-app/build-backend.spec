@@ -17,6 +17,7 @@ a = Analysis(
         (os.path.join(ROOT, 'prompts'), 'prompts'),
         (os.path.join(ROOT, 'static'), 'static'),
         (os.path.join(ROOT, 'config.json.example'), '.'),
+        (os.path.join(ROOT, 'dist'), 'dist'),
     ],
     hiddenimports=[
         'uvicorn',

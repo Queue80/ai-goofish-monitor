@@ -36,7 +36,7 @@
     "extraResources": [
       {
         "from": "../dist",
-        "to": "frontend"
+        "to": "dist"
       },
       {
         "from": "./pyinstaller-dist/xianyu-backend",

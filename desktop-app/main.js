@@ -77,7 +77,7 @@ function startBackend() {
       env.PLAYWRIGHT_BROWSERS_PATH = browsersPath
     }
     // 设置前端静态文件路径
-    const frontendPath = path.join(process.resourcesPath, 'frontend')
+    const frontendPath = path.join(process.resourcesPath, 'dist')
     if (fs.existsSync(frontendPath)) {
       env.STATIC_FILES_DIR = frontendPath
       console.log(`[Backend] Using frontend path: ${frontendPath}`)
