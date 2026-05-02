@@ -106,8 +106,23 @@ class ProcessService:
     ) -> asyncio.subprocess.Process:
         preexec_fn = os.setsid if sys.platform != "win32" else None
         child_env = os.environ.copy()
+        
+        # 清理打包模式的环境变量，这些只对主后端进程有效
+        # 子进程运行 spider_v2.py 需要使用本地路径
+        env_to_remove = [
+            'STATIC_FILES_DIR',
+            'PLAYWRIGHT_BROWSERS_PATH',
+            'APP_DATABASE_FILE',
+            'STATE_DIR',
+            'LOGS_DIR',
+            'IMAGES_DIR',
+        ]
+        for env_key in env_to_remove:
+            child_env.pop(env_key, None)
+        
         child_env["PYTHONIOENCODING"] = "utf-8"
         child_env["PYTHONUTF8"] = "1"
+        
         return await asyncio.create_subprocess_exec(
             *self._build_spawn_command(task_name),
             stdout=log_file_handle,
