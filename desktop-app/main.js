@@ -52,6 +52,9 @@ function startBackend() {
     return
   }
 
+  console.log(`[Main] Backend runtime mode: ${runtime.mode}`)
+  console.log(`[Main] Backend path: ${runtime.path}`)
+
   const env = {
     ...process.env,
     APP_DATABASE_FILE: path.join(dataDir, 'app.sqlite3'),
@@ -71,19 +74,28 @@ function startBackend() {
 
   if (runtime.mode === 'bundled') {
     // 使用打包好的可执行文件
+    console.log(`[Main] Using bundled backend: ${runtime.path}`)
+    
     // 设置 Playwright 浏览器路径
     const browsersPath = path.join(process.resourcesPath, 'playwright-browsers')
+    console.log(`[Main] Playwright browsers path: ${browsersPath}`)
     if (fs.existsSync(browsersPath)) {
       env.PLAYWRIGHT_BROWSERS_PATH = browsersPath
     }
+    
     // 设置前端静态文件路径
     const frontendPath = path.join(process.resourcesPath, 'dist')
+    console.log(`[Main] Frontend path: ${frontendPath}`)
     if (fs.existsSync(frontendPath)) {
       env.STATIC_FILES_DIR = frontendPath
       console.log(`[Backend] Using frontend path: ${frontendPath}`)
     } else {
       console.error(`[Backend] Frontend path not found: ${frontendPath}`)
+      dialog.showErrorBox('启动失败', `前端文件不存在: ${frontendPath}`)
+      app.quit()
+      return
     }
+    
     // 设置数据目录
     env.STATE_DIR = stateDir
     env.LOGS_DIR = logsDir
@@ -110,13 +122,15 @@ function startBackend() {
   })
 
   backendProcess.stderr.on('data', (data) => {
-    console.error(`[Backend] ${data}`)
+    console.error(`[Backend Error] ${data}`)
   })
 
   backendProcess.on('close', (code) => {
     console.log(`Backend exited with code ${code}`)
     backendProcess = null
   })
+  
+  console.log(`[Main] Backend process started, waiting for port ${APP_PORT}...`)
 }
 
 function stopBackend() {
@@ -158,15 +172,18 @@ function createMainWindow() {
   // 等待后端启动后加载页面
   const checkBackend = () => {
     const http = require('http')
+    console.log(`[Main] Checking backend on port ${APP_PORT}...`)
     http.get(`http://127.0.0.1:${APP_PORT}`, (res) => {
+      console.log(`[Main] Backend is ready, loading URL`)
       mainWindow.loadURL(`http://127.0.0.1:${APP_PORT}`)
-    }).on('error', () => {
+    }).on('error', (e) => {
+      console.error(`[Main] Backend not ready: ${e.message}`)
       setTimeout(checkBackend, 1000)
     })
   }
 
   startBackend()
-  setTimeout(checkBackend, 2000)
+  setTimeout(checkBackend, 3000)  // 增加等待时间
 }
 
 // IPC: 保存配置
