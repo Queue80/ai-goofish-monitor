@@ -26,11 +26,6 @@ jobs:
           npm run build
         shell: bash
 
-      - name: Copy Frontend to Root
-        run: |
-          cp -r web-ui/dist .
-        shell: bash
-
       - name: Install Python Dependencies
         run: |
           pip install -r requirements-runtime.txt
