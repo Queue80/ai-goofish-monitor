@@ -90,18 +90,16 @@ class ProcessService:
         """在打包模式下找到可用的 Python 解释器"""
         import shutil
         
-        # 检查当前目录
+        # 检查当前目录和 exe 所在目录
         cwd = os.getcwd()
-        
-        # 检查 exe 所在目录是否有 python.exe
         exe_dir = os.path.dirname(sys.executable)
         
-        # 常见位置
+        # 常见位置 - 优先在当前目录和 exe 目录找
         possible_python = [
-            os.path.join(exe_dir, 'python.exe'),
-            os.path.join(exe_dir, 'python3.exe'),
             os.path.join(cwd, 'python.exe'),
+            os.path.join(exe_dir, 'python.exe'),
             os.path.join(cwd, 'python3.exe'),
+            os.path.join(exe_dir, 'python3.exe'),
         ]
         
         for py in possible_python:
@@ -111,9 +109,16 @@ class ProcessService:
         
         # 尝试从系统 PATH 找 python
         system_python = shutil.which('python')
-        if system_python:
+        if system_python and system_python.lower() != 'python.exe':
+            # 排除 Windows Store 的 stub
             print(f"[Task Debug] Found system Python: {system_python}")
             return system_python
+        
+        # 尝试 python3
+        system_python3 = shutil.which('python3')
+        if system_python3:
+            print(f"[Task Debug] Found Python3: {system_python3}")
+            return system_python3
         
         # 找不到则返回原来的 executable
         print(f"[Task Debug] No separate Python found, using: {sys.executable}")
@@ -171,17 +176,9 @@ class ProcessService:
         child_env["PYTHONIOENCODING"] = "utf-8"
         child_env["PYTHONUTF8"] = "1"
         
-        # 设置正确的工作目录
-        # 在打包模式下，父进程在 resources/backend，需要切换到能找到 spider_v2.py 的目录
+        # 不改变工作目录，保持在 resources/backend，因为 spider_v2.py 在这里
         cwd = os.getcwd()
-        print(f"[Task Debug] Original cwd: {cwd}")
-        
-        # 如果当前目录包含 _internal（打包模式），则退回到上一级
-        if os.path.exists(os.path.join(cwd, '_internal')):
-            cwd = os.path.dirname(cwd)
-            print(f"[Task Debug] Changed cwd to (packaged mode): {cwd}")
-        else:
-            print(f"[Task Debug] Using cwd (dev mode): {cwd}")
+        print(f"[Task Debug] Using cwd: {cwd}")
         
         # 检查 spider_v2.py 是否存在
         spider_path = os.path.join(cwd, 'spider_v2.py')
