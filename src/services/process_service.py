@@ -123,12 +123,20 @@ class ProcessService:
         child_env["PYTHONIOENCODING"] = "utf-8"
         child_env["PYTHONUTF8"] = "1"
         
+        # 设置正确的工作目录
+        # 在打包模式下，父进程在 resources/backend，需要切换到能找到 spider_v2.py 的目录
+        cwd = os.getcwd()
+        # 如果当前目录包含 _internal（打包模式），则退回到上一级
+        if os.path.exists(os.path.join(cwd, '_internal')):
+            cwd = os.path.dirname(cwd)
+        
         return await asyncio.create_subprocess_exec(
             *self._build_spawn_command(task_name),
             stdout=log_file_handle,
             stderr=log_file_handle,
             preexec_fn=preexec_fn,
             env=child_env,
+            cwd=cwd,
         )
 
     def _register_runtime(
