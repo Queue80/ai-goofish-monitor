@@ -143,20 +143,19 @@ function startBackend() {
     // 使用打包好的可执行文件
     log(`Using bundled backend: ${runtime.path}`)
     
-    // 确定工作目录：exe 的父目录 (resources 目录)
-    // exe 在 resources/backend/xianyu-backend.exe，所以父目录是 resources
-    const backendCwd = path.join(process.resourcesPath)
+    // 确定工作目录：exe 所在目录 (resources/backend)
+    const backendCwd = path.dirname(runtime.path)
     log(`Backend working directory: ${backendCwd}`)
     
     // 检查各目录是否存在
-    const distInResources = path.join(backendCwd, 'dist')
-    if (fs.existsSync(distInResources)) {
-      log(`Found dist in resources: ${distInResources}`)
+    const distInBackend = path.join(backendCwd, 'dist')
+    if (fs.existsSync(distInBackend)) {
+      log(`Found dist in backend: ${distInBackend}`)
     }
     
-    const staticInResources = path.join(backendCwd, 'static')
-    if (fs.existsSync(staticInResources)) {
-      log(`Found static in resources: ${staticInResources}`)
+    const staticInBackend = path.join(backendCwd, 'static')
+    if (fs.existsSync(staticInBackend)) {
+      log(`Found static in backend: ${staticInBackend}`)
     }
     
     // 设置 Playwright 浏览器路径
@@ -169,7 +168,7 @@ function startBackend() {
       log('WARNING: Playwright browsers not found')
     }
     
-    // 设置前端静态文件路径 - 使用 resources 目录
+    // 设置前端静态文件路径 - 使用 backend 目录下的 dist
     const frontendPath = path.join(backendCwd, 'dist')
     
     log(`Frontend path: ${frontendPath}`)
@@ -178,7 +177,6 @@ function startBackend() {
       log(`Frontend path set: ${frontendPath}`)
     } else {
       log(`ERROR: Frontend path not found: ${frontendPath}`)
-      // 不再直接退出，尝试让后端自己处理
       log('Will try default dist path in backend...')
     }
     
@@ -192,8 +190,8 @@ function startBackend() {
     
     backendProcess = spawn(runtime.path, [], {
       env,
-      stdio: ['pipe', 'pipe', 'pipe'],  // 改为 pipe 以便捕获输出
-      cwd: backendCwd  // 使用 resources 目录作为工作目录
+      stdio: ['pipe', 'pipe', 'pipe'],
+      cwd: backendCwd  // 使用 backend 目录作为工作目录
     })
     
     // 添加后端进程的输出监听
