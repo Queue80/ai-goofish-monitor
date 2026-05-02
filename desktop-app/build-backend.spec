@@ -114,3 +114,26 @@ if os.path.exists(prompts_src):
         shutil.rmtree(prompts_dst)
     shutil.copytree(prompts_src, prompts_dst)
     print(f'Copied prompts to {prompts_dst}')
+
+# 复制 src 目录到输出目录（spider_v2.py 依赖的模块）
+src_src = os.path.join(ROOT, 'src')
+src_dst = os.path.join(ROOT, 'desktop-app', 'pyinstaller-dist', 'xianyu-backend', 'src')
+if os.path.exists(src_src):
+    if os.path.exists(src_dst):
+        shutil.rmtree(src_dst)
+    shutil.copytree(src_src, src_dst)
+    print(f'Copied src to {src_dst}')
+
+# 复制 spider_v2.py 到输出目录
+spider_src = os.path.join(ROOT, 'spider_v2.py')
+spider_dst = os.path.join(ROOT, 'desktop-app', 'pyinstaller-dist', 'xianyu-backend', 'spider_v2.py')
+if os.path.exists(spider_src):
+    shutil.copy2(spider_src, spider_dst)
+    print(f'Copied spider_v2.py to {spider_dst}')
+
+# 复制 pyproject.toml 或 requirements.txt（如果需要）
+requirements_src = os.path.join(ROOT, 'requirements-runtime.txt')
+requirements_dst = os.path.join(ROOT, 'desktop-app', 'pyinstaller-dist', 'xianyu-backend', 'requirements-runtime.txt')
+if os.path.exists(requirements_src):
+    shutil.copy2(requirements_src, requirements_dst)
+    print(f'Copied requirements-runtime.txt to {requirements_dst}')

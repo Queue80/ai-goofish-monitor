@@ -86,13 +86,49 @@ class ProcessService:
         log_file_handle = open(log_file_path, "a", encoding="utf-8")
         return log_file_path, log_file_handle
 
+    def _find_python_executable(self) -> str:
+        """在打包模式下找到可用的 Python 解释器"""
+        import shutil
+        
+        # 检查当前目录
+        cwd = os.getcwd()
+        
+        # 检查 exe 所在目录是否有 python.exe
+        exe_dir = os.path.dirname(sys.executable)
+        
+        # 常见位置
+        possible_python = [
+            os.path.join(exe_dir, 'python.exe'),
+            os.path.join(exe_dir, 'python3.exe'),
+            os.path.join(cwd, 'python.exe'),
+            os.path.join(cwd, 'python3.exe'),
+        ]
+        
+        for py in possible_python:
+            if os.path.exists(py):
+                print(f"[Task Debug] Found Python at: {py}")
+                return py
+        
+        # 尝试从系统 PATH 找 python
+        system_python = shutil.which('python')
+        if system_python:
+            print(f"[Task Debug] Found system Python: {system_python}")
+            return system_python
+        
+        # 找不到则返回原来的 executable
+        print(f"[Task Debug] No separate Python found, using: {sys.executable}")
+        return sys.executable
+
     def _build_spawn_command(self, task_name: str) -> list[str]:
         # 打印实际要执行的命令用于调试
         print(f"[Task Debug] sys.executable: {sys.executable}")
         print(f"[Task Debug] sys.version: {sys.version}")
         
+        # 找到合适的 Python 解释器
+        python_exe = self._find_python_executable()
+        
         command = [
-            sys.executable,
+            python_exe,
             "-u",
             "spider_v2.py",
             "--task-name",
