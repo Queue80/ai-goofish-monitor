@@ -20,4 +20,6 @@ services:
       - ./logs:/app/logs
       - ./images:/app/images
       - ./price_history:/app/price_history
+      - ./src:/app/src
+      - ./dist:/app/dist
     restart: unless-stopped

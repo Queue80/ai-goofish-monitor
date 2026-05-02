@@ -80,6 +80,9 @@ function startBackend() {
     const frontendPath = path.join(process.resourcesPath, 'frontend')
     if (fs.existsSync(frontendPath)) {
       env.STATIC_FILES_DIR = frontendPath
+      console.log(`[Backend] Using frontend path: ${frontendPath}`)
+    } else {
+      console.error(`[Backend] Frontend path not found: ${frontendPath}`)
     }
     // 设置数据目录
     env.STATE_DIR = stateDir
@@ -88,7 +91,8 @@ function startBackend() {
 
     backendProcess = spawn(runtime.path, [], {
       env,
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: process.resourcesPath
     })
   } else {
     // 开发模式：使用 Python
