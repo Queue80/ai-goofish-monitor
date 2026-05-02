@@ -107,6 +107,10 @@ class ProcessService:
         preexec_fn = os.setsid if sys.platform != "win32" else None
         child_env = os.environ.copy()
         
+        # 记录父进程信息用于调试
+        print(f"[Task Debug] Parent PID: {os.getpid()}")
+        print(f"[Task Debug] Parent cwd: {os.getcwd()}")
+        
         # 清理打包模式的环境变量，这些只对主后端进程有效
         # 子进程运行 spider_v2.py 需要使用本地路径
         env_to_remove = [
@@ -118,7 +122,9 @@ class ProcessService:
             'IMAGES_DIR',
         ]
         for env_key in env_to_remove:
-            child_env.pop(env_key, None)
+            removed = child_env.pop(env_key, None)
+            if removed:
+                print(f"[Task Debug] Removed env: {env_key}={removed}")
         
         child_env["PYTHONIOENCODING"] = "utf-8"
         child_env["PYTHONUTF8"] = "1"
@@ -126,9 +132,18 @@ class ProcessService:
         # 设置正确的工作目录
         # 在打包模式下，父进程在 resources/backend，需要切换到能找到 spider_v2.py 的目录
         cwd = os.getcwd()
+        print(f"[Task Debug] Original cwd: {cwd}")
+        
         # 如果当前目录包含 _internal（打包模式），则退回到上一级
         if os.path.exists(os.path.join(cwd, '_internal')):
             cwd = os.path.dirname(cwd)
+            print(f"[Task Debug] Changed cwd to (packaged mode): {cwd}")
+        else:
+            print(f"[Task Debug] Using cwd (dev mode): {cwd}")
+        
+        # 检查 spider_v2.py 是否存在
+        spider_path = os.path.join(cwd, 'spider_v2.py')
+        print(f"[Task Debug] Checking spider_v2.py at: {spider_path}, exists: {os.path.exists(spider_path)}")
         
         return await asyncio.create_subprocess_exec(
             *self._build_spawn_command(task_name),
