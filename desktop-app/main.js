@@ -205,6 +205,8 @@ function createSetupWindow() {
 }
 
 function createMainWindow() {
+  log('Creating main window...')
+  
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -216,16 +218,38 @@ function createMainWindow() {
     }
   })
   mainWindow.setMenuBarVisibility(false)
+  
+  log('Main window created, waiting for backend...')
 
   // 等待后端启动后加载页面
   const checkBackend = () => {
     const http = require('http')
     log(`Checking backend on port ${APP_PORT}...`)
-    http.get(`http://127.0.0.1:${APP_PORT}`, (res) => {
-      log(`Backend is ready, loading URL`)
-      mainWindow.loadURL(`http://127.0.0.1:${APP_PORT}`)
+    
+    const req = http.get(`http://127.0.0.1:${APP_PORT}`, (res) => {
+      log(`Backend responded with status: ${res.statusCode}`)
+      
+      // 验证是否是有效的 HTML 页面
+      let data = ''
+      res.on('data', (chunk) => {
+        data += chunk
+      })
+      res.on('end', () => {
+        if (data.includes('<!DOCTYPE html>') || data.includes('<html')) {
+          log('Backend is ready, loading URL')
+          mainWindow.loadURL(`http://127.0.0.1:${APP_PORT}`)
+        } else {
+          log(`Backend returned non-HTML response, waiting...`)
+          setTimeout(checkBackend, 1000)
+        }
+      })
     }).on('error', (e) => {
       log(`Backend not ready: ${e.message}`)
+      setTimeout(checkBackend, 1000)
+    })
+    
+    req.on('error', (e) => {
+      log(`Backend request error: ${e.message}`)
       setTimeout(checkBackend, 1000)
     })
   }
