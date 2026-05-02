@@ -80,6 +80,18 @@ function startBackend() {
   log(`Backend runtime mode: ${runtime.mode}`)
   log(`Backend path: ${runtime.path}`)
 
+  // 创建数据目录
+  const dataDir = path.join(userDataPath, 'data')
+  const stateDir = path.join(userDataPath, 'state')
+  const imagesDir = path.join(userDataPath, 'images')
+  
+  ;[dataDir, stateDir, logsDir, imagesDir].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+      log(`Created directory: ${dir}`)
+    }
+  })
+
   const env = {
     ...process.env,
     APP_DATABASE_FILE: path.join(dataDir, 'app.sqlite3'),
@@ -130,11 +142,30 @@ function startBackend() {
     env.IMAGES_DIR = imagesDir
 
     log('Starting backend process...')
+    log(`Backend cwd: ${process.resourcesPath}`)
+    log(`Backend env: ${JSON.stringify(env, null, 2)}`)
+    
     backendProcess = spawn(runtime.path, [], {
       env,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],  // 改为 pipe 以便捕获输出
       cwd: process.resourcesPath
     })
+    
+    // 添加后端进程的输出监听
+    backendProcess.stdout.on('data', (data) => {
+      log(`[Backend] ${data}`)
+    })
+    
+    backendProcess.stderr.on('data', (data) => {
+      log(`[Backend Error] ${data}`)
+    })
+    
+    backendProcess.on('close', (code) => {
+      log(`Backend exited with code ${code}`)
+      backendProcess = null
+    })
+    
+    log(`Backend process PID: ${backendProcess.pid}`)
   } else {
     // 开发模式：使用 Python
     const backendDir = path.join(__dirname, '..')
@@ -146,19 +177,7 @@ function startBackend() {
     })
   }
 
-  backendProcess.stdout.on('data', (data) => {
-    log(`[Backend] ${data}`)
-  })
-
-  backendProcess.stderr.on('data', (data) => {
-    log(`[Backend Error] ${data}`)
-  })
-
-  backendProcess.on('close', (code) => {
-    log(`Backend exited with code ${code}`)
-    backendProcess = null
-  })
-  
+  // 已在上面添加了监听器
   log(`Backend process started, waiting for port ${APP_PORT}...`)
 }
 
