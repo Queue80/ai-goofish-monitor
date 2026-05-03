@@ -40,7 +40,7 @@ jobs:
       - name: Download and Embed Python
         shell: pwsh
         run: |
-          # 下载嵌入式 Python 3.11 (Windows x64) - 完整版包含 pip
+          # 下载嵌入式 Python 3.11 (Windows x64)
           $pythonUrl = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip"
           $pythonZip = "python-embed.zip"
           $pythonDir = "python-embed"
@@ -61,8 +61,18 @@ jobs:
             Set-Content -Path $pthFile -Value $content -NoNewline
           }
           
-          # 安装依赖到嵌入式 Python
+          # 下载 get-pip.py
+          $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
+          $getPipFile = "get-pip.py"
+          Write-Host "Downloading get-pip.py..."
+          Invoke-WebRequest -Uri $getPipUrl -OutFile $getPipFile
+          
+          # 安装 pip 到嵌入式 Python
           $pythonExe = Join-Path $pythonDir "python.exe"
+          Write-Host "Installing pip..."
+          & $pythonExe $getPipFile --quiet
+          
+          # 使用 pip 安装依赖
           Write-Host "Installing dependencies..."
           & $pythonExe -m pip install --upgrade pip --quiet
           & $pythonExe -m pip install -r requirements-runtime.txt --quiet
