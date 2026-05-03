@@ -183,9 +183,9 @@ class ProcessService:
         
         # 清理打包模式的环境变量，这些只对主后端进程有效
         # 子进程运行 spider_v2.py 需要使用本地路径
+        # 注意：保留 PLAYWRIGHT_BROWSERS_PATH，因为爬虫需要用到
         env_to_remove = [
             'STATIC_FILES_DIR',
-            'PLAYWRIGHT_BROWSERS_PATH',
             'APP_DATABASE_FILE',
             'STATE_DIR',
             'LOGS_DIR',
