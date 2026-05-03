@@ -37,6 +37,43 @@ jobs:
         env:
           PYTHONPATH: .
 
+      - name: Download and Embed Python
+        shell: pwsh
+        run: |
+          # 下载嵌入式 Python 3.11 (Windows x64) - 完整版包含 pip
+          $pythonUrl = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip"
+          $pythonZip = "python-embed.zip"
+          $pythonDir = "python-embed"
+          $outputDir = "desktop-app\pyinstaller-dist\xianyu-backend"
+          
+          Write-Host "Downloading Python..."
+          Invoke-WebRequest -Uri $pythonUrl -OutFile $pythonZip
+          
+          Write-Host "Extracting Python..."
+          if (Test-Path $pythonDir) { Remove-Item $pythonDir -Recurse -Force }
+          Expand-Archive -Path $pythonZip -DestinationPath $pythonDir -Force
+          
+          # 启用 pip (移除 _pth 文件中的 import site 注释)
+          $pthFile = Join-Path $pythonDir "python311._pth"
+          if (Test-Path $pthFile) {
+            $content = Get-Content $pthFile -Raw
+            $content = $content -replace '#import site', 'import site'
+            Set-Content -Path $pthFile -Value $content -NoNewline
+          }
+          
+          # 安装依赖到嵌入式 Python
+          $pythonExe = Join-Path $pythonDir "python.exe"
+          Write-Host "Installing dependencies..."
+          & $pythonExe -m pip install --upgrade pip --quiet
+          & $pythonExe -m pip install -r requirements-runtime.txt --quiet
+          
+          # 复制 Python 到打包输出目录 (包含安装的包)
+          Copy-Item -Path $pythonDir -Destination (Join-Path $outputDir "python") -Recurse -Force
+          
+          Write-Host "Python embedded with dependencies successfully"
+          Write-Host "Output directory contents:"
+          Get-ChildItem $outputDir | Format-Table Name
+
       - name: Install Playwright Chromium
         run: |
           python -m playwright install chromium

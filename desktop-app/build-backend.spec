@@ -137,3 +137,9 @@ requirements_dst = os.path.join(ROOT, 'desktop-app', 'pyinstaller-dist', 'xianyu
 if os.path.exists(requirements_src):
     shutil.copy2(requirements_src, requirements_dst)
     print(f'Copied requirements-runtime.txt to {requirements_dst}')
+
+# 复制 _internal 目录（如果存在，包含嵌入的 Python）
+internal_src = os.path.join(ROOT, 'desktop-app', 'pyinstaller-dist', 'xianyu-backend', '_internal')
+internal_dst = os.path.join(ROOT, 'desktop-app', 'pyinstaller-dist', 'xianyu-backend', '_internal')
+if os.path.exists(internal_src):
+    print(f'_internal already exists at {internal_src}')

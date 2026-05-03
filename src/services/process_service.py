@@ -90,32 +90,66 @@ class ProcessService:
         """在打包模式下找到可用的 Python 解释器"""
         import shutil
         
-        # 优先使用 python 命令（假设系统已安装 Python）
+        # 首先检查打包目录中是否有嵌入的 Python
+        # 打包后的结构: resources/backend/python/python.exe
+        possible_paths = []
+        
+        # 1. 检查当前目录下的 python 子目录（打包后的嵌入 Python）
+        cwd = os.getcwd()
+        embedded_python = os.path.join(cwd, 'python', 'python.exe')
+        if os.path.exists(embedded_python):
+            print(f"[Task Debug] Found embedded Python: {embedded_python}")
+            return embedded_python
+        
+        # 2. 检查 _internal 目录下的 python
+        internal_python = os.path.join(cwd, '_internal', 'python', 'python.exe')
+        if os.path.exists(internal_python):
+            print(f"[Task Debug] Found embedded Python in _internal: {internal_python}")
+            return internal_python
+        
+        # 3. 检查父目录
+        parent_cwd = os.path.dirname(cwd)
+        parent_python = os.path.join(parent_cwd, 'python', 'python.exe')
+        if os.path.exists(parent_python):
+            print(f"[Task Debug] Found embedded Python in parent: {parent_python}")
+            return parent_python
+        
+        # 4. 尝试使用 python 命令（假设系统已安装 Python）
         python_cmd = shutil.which('python')
         if python_cmd:
             # 排除 Windows Store stub
             lower_path = python_cmd.lower()
             if 'windowsapps' not in lower_path:
-                print(f"[Task Debug] Using python command: {python_cmd}")
+                print(f"[Task Debug] Using system python: {python_cmd}")
                 return python_cmd
             else:
                 print(f"[Task Debug] Skipping Windows Store Python: {python_cmd}")
         
-        # 尝试 python3
+        # 5. 尝试 python3
         python3_cmd = shutil.which('python3')
         if python3_cmd:
             print(f"[Task Debug] Using python3 command: {python3_cmd}")
             return python3_cmd
         
+        # 6. 尝试 py.exe (Windows Python Launcher)
+        py_exe = shutil.which('py')
+        if py_exe:
+            print(f"[Task Debug] Using py.exe: {py_exe}")
+            return py_exe
+        
         # 找不到则报错
-        print(f"[Task Debug] ERROR: No Python found in PATH!")
+        print(f"[Task Debug] ERROR: No Python found!")
         print(f"[Task Debug] sys.executable: {sys.executable}")
-        raise RuntimeError("未找到可用的 Python 解释器。请确保系统已安装 Python 并添加到 PATH。")
+        print(f"[Task Debug] cwd: {os.getcwd()}")
+        print(f"[Task Debug] Contents of cwd: {os.listdir(cwd)}")
+        raise RuntimeError("未找到可用的 Python 解释器。")
 
     def _build_spawn_command(self, task_name: str) -> list[str]:
         # 打印实际要执行的命令用于调试
         print(f"[Task Debug] sys.executable: {sys.executable}")
         print(f"[Task Debug] sys.version: {sys.version}")
+        print(f"[Task Debug] Current directory: {os.getcwd()}")
+        print(f"[Task Debug] Directory listing: {os.listdir(os.getcwd())}")
         
         # 找到合适的 Python 解释器
         python_exe = self._find_python_executable()
