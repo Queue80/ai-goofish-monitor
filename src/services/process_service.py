@@ -107,12 +107,16 @@ class ProcessService:
                 print(f"[Task Debug] Found Python at: {py}")
                 return py
         
-        # 尝试从系统 PATH 找 python
+        # 尝试从系统 PATH 找 python，排除 Windows Store
         system_python = shutil.which('python')
-        if system_python and system_python.lower() != 'python.exe':
-            # 排除 Windows Store 的 stub
-            print(f"[Task Debug] Found system Python: {system_python}")
-            return system_python
+        if system_python:
+            # 排除 Windows Store stub
+            lower_path = system_python.lower()
+            if 'windowsapps' not in lower_path:
+                print(f"[Task Debug] Found system Python: {system_python}")
+                return system_python
+            else:
+                print(f"[Task Debug] Skipping Windows Store Python: {system_python}")
         
         # 尝试 python3
         system_python3 = shutil.which('python3')
