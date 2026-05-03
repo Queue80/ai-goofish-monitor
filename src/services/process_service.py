@@ -198,6 +198,10 @@ class ProcessService:
         child_env["PYTHONIOENCODING"] = "utf-8"
         child_env["PYTHONUTF8"] = "1"
         
+        # 设置 PYTHONPATH，让子进程能找到 src 模块
+        child_env["PYTHONPATH"] = cwd
+        print(f"[Task Debug] Set PYTHONPATH: {cwd}")
+        
         # 不改变工作目录，保持在 resources/backend，因为 spider_v2.py 在这里
         cwd = os.getcwd()
         print(f"[Task Debug] Using cwd: {cwd}")
