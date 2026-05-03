@@ -2,12 +2,10 @@ import asyncio
 import sys
 import os
 
-# 确保可以找到 src 模块
-if __name__ == "__main__" and "__compiled__" not in globals():
-    # 获取脚本所在目录
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    if script_dir not in sys.path:
-        sys.path.insert(0, script_dir)
+# 无论是否打包，都确保可以找到 src 模块
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
 
 import argparse
 import json
