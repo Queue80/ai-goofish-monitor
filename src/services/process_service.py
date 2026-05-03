@@ -154,18 +154,22 @@ class ProcessService:
         # 找到合适的 Python 解释器
         python_exe = self._find_python_executable()
         
+        # 获取当前工作目录
+        cwd = os.getcwd()
+        
+        # 使用 -c 直接执行，设置 sys.path 后导入并运行 spider_v2
+        # 传递 task_name 作为参数
         command = [
             python_exe,
             "-u",
-            "spider_v2.py",
-            "--task-name",
-            task_name,
+            "-c",
+            f"import sys; sys.path.insert(0, r'{cwd}'); "
+            f"import spider_v2; "
+            f"sys.argv = ['spider_v2.py', '--task-name', {repr(task_name)}']; "
+            f"spider_v2.main()",
         ]
-        print(f"[Task Debug] Spawn command: {' '.join(command)}")
+        print(f"[Task Debug] Spawn command: {python_exe} -c \"...\"")
         
-        debug_limit = str(os.getenv(SPIDER_DEBUG_LIMIT_ENV, "")).strip()
-        if debug_limit.isdigit() and int(debug_limit) > 0:
-            command.extend(["--debug-limit", debug_limit])
         return command
 
     async def _spawn_process(
