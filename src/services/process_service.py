@@ -183,14 +183,20 @@ class ProcessService:
         
         # 清理打包模式的环境变量，这些只对主后端进程有效
         # 子进程运行 spider_v2.py 需要使用本地路径
-        # 注意：保留 PLAYWRIGHT_BROWSERS_PATH，因为爬虫需要用到
+        # 注意：保留 PLAYWRIGHT_BROWSERS_PATH 和 APP_DATABASE_FILE（需要传给子进程）
         env_to_remove = [
             'STATIC_FILES_DIR',
-            'APP_DATABASE_FILE',
             'STATE_DIR',
             'LOGS_DIR',
             'IMAGES_DIR',
         ]
+        
+        # 确保子进程有正确的数据库路径
+        # 如果用户数据目录下的数据库存在，使用它
+        user_data_db = os.path.join(os.path.expanduser('~'), 'AppData', 'Roaming', 'xianyu-monitor', 'data', 'app.sqlite3')
+        if os.path.exists(user_data_db):
+            child_env['APP_DATABASE_FILE'] = user_data_db
+            print(f"[Task Debug] Using user data DB: {user_data_db}")
         for env_key in env_to_remove:
             removed = child_env.pop(env_key, None)
             if removed:
