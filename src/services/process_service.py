@@ -90,43 +90,27 @@ class ProcessService:
         """在打包模式下找到可用的 Python 解释器"""
         import shutil
         
-        # 检查当前目录和 exe 所在目录
-        cwd = os.getcwd()
-        exe_dir = os.path.dirname(sys.executable)
-        
-        # 常见位置 - 优先在当前目录和 exe 目录找
-        possible_python = [
-            os.path.join(cwd, 'python.exe'),
-            os.path.join(exe_dir, 'python.exe'),
-            os.path.join(cwd, 'python3.exe'),
-            os.path.join(exe_dir, 'python3.exe'),
-        ]
-        
-        for py in possible_python:
-            if os.path.exists(py):
-                print(f"[Task Debug] Found Python at: {py}")
-                return py
-        
-        # 尝试从系统 PATH 找 python，排除 Windows Store
-        system_python = shutil.which('python')
-        if system_python:
+        # 优先使用 python 命令（假设系统已安装 Python）
+        python_cmd = shutil.which('python')
+        if python_cmd:
             # 排除 Windows Store stub
-            lower_path = system_python.lower()
+            lower_path = python_cmd.lower()
             if 'windowsapps' not in lower_path:
-                print(f"[Task Debug] Found system Python: {system_python}")
-                return system_python
+                print(f"[Task Debug] Using python command: {python_cmd}")
+                return python_cmd
             else:
-                print(f"[Task Debug] Skipping Windows Store Python: {system_python}")
+                print(f"[Task Debug] Skipping Windows Store Python: {python_cmd}")
         
         # 尝试 python3
-        system_python3 = shutil.which('python3')
-        if system_python3:
-            print(f"[Task Debug] Found Python3: {system_python3}")
-            return system_python3
+        python3_cmd = shutil.which('python3')
+        if python3_cmd:
+            print(f"[Task Debug] Using python3 command: {python3_cmd}")
+            return python3_cmd
         
-        # 找不到则返回原来的 executable
-        print(f"[Task Debug] No separate Python found, using: {sys.executable}")
-        return sys.executable
+        # 找不到则报错
+        print(f"[Task Debug] ERROR: No Python found in PATH!")
+        print(f"[Task Debug] sys.executable: {sys.executable}")
+        raise RuntimeError("未找到可用的 Python 解释器。请确保系统已安装 Python 并添加到 PATH。")
 
     def _build_spawn_command(self, task_name: str) -> list[str]:
         # 打印实际要执行的命令用于调试
