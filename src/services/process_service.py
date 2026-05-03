@@ -157,16 +157,16 @@ class ProcessService:
         # 获取当前工作目录
         cwd = os.getcwd()
         
-        # 使用 -c 直接执行，设置 sys.path 后导入并运行 spider_v2
-        # 传递 task_name 作为参数
+        # 使用 -c 执行异步 main 函数
         command = [
             python_exe,
             "-u",
             "-c",
             f"import sys; sys.path.insert(0, r'{cwd}'); "
+            f"import asyncio; "
             f"import spider_v2; "
             f"sys.argv = ['spider_v2.py', '--task-name', {repr(task_name)}']; "
-            f"spider_v2.main()",
+            f"asyncio.run(spider_v2.main())",
         ]
         print(f"[Task Debug] Spawn command: {python_exe} -c \"...\"")
         
